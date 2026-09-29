@@ -69,7 +69,7 @@
                 </div>
                 <button id="nav-map" onclick="switchTab('map')" class="px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 bg-rose-500 text-white shadow-sm">
                     <i class="fa-solid fa-map-location-dot"></i>
-                    <span>定向任務 (31-47)</span>
+                    <span>定向任務</span>
                 </button>
                 <button id="nav-gallery" onclick="switchTab('gallery')" class="px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-rose-700 hover:bg-rose-100">
                     <i class="fa-solid fa-images"></i>
@@ -97,23 +97,23 @@
                 <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
                 <div class="max-w-2xl relative z-10 space-y-3">
                     <span class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase">
-                        <i class="fa-solid fa-flag-checkered me-1"></i> 檢查點總覽 #31 ~ #47
+                        <i class="fa-solid fa-flag-checkered me-1"></i> 定向探索檢查點總覽
                     </span>
                     <h2 class="text-2xl md:text-3xl font-black">歡迎參加嘉義定向越野探索！</h2>
                     <p class="text-xs md:text-sm text-rose-100 font-medium leading-relaxed">
-                        點擊下方對應的檢查點按鈕（31-47號），輸入現場工作人員提供的關卡密碼即可開啟解鎖任務。完成挑戰展現諸羅女力+1吧！
+                        點擊下方對應的檢查點按鈕，輸入現場工作人員提供的關卡密碼即可開啟解鎖任務。完成挑戰展現諸羅女力+1吧！
                     </p>
                 </div>
             </div>
 
-            <!-- Task Grid (31 to 47) -->
+            <!-- Task Grid -->
             <div>
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
                         <i class="fa-solid fa-location-dot text-rose-500"></i>
                         定向探索點位任務清單
                     </h3>
-                    <span class="text-xs text-slate-500 font-medium">共 17 個點位 (31~47)</span>
+                    <span id="task-count-text" class="text-xs text-slate-500 font-medium">載入中...</span>
                 </div>
                 <div id="task-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <!-- Dynamic rendering by JS -->
@@ -136,7 +136,7 @@
                         <!-- Rendered by JS -->
                     </div>
                     <select id="gallery-filter" onchange="renderGallery()" class="px-3 py-2 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl outline-none focus:ring-2 focus:ring-rose-300">
-                        <option value="ALL">全部檢查點 (31 - 47)</option>
+                        <option value="ALL">全部檢查點</option>
                     </select>
                 </div>
             </div>
@@ -236,14 +236,19 @@
                 </div>
             </div>
 
-            <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
                 <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-sliders text-rose-500"></i>
-                    關卡題目與密碼編輯 (31~47號)
+                    關卡題目與密碼編輯
                 </h3>
-                <button onclick="promptResetDefaultTasks()" class="text-xs text-rose-600 hover:underline font-bold">
-                    <i class="fa-solid fa-rotate-left me-1"></i>重置為預設題庫
-                </button>
+                <div class="flex items-center gap-3">
+                    <button onclick="promptAddNewTask()" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> 手動新增關卡
+                    </button>
+                    <button onclick="promptResetDefaultTasks()" class="text-xs text-rose-600 hover:underline font-bold">
+                        <i class="fa-solid fa-rotate-left me-1"></i>重置為預設題庫
+                    </button>
+                </div>
             </div>
 
             <!-- Dynamic Admin Tasks List -->
@@ -606,6 +611,18 @@
             }
         };
 
+        // Helper: Get all task IDs dynamically sorted
+        function getAllTaskIds() {
+            const idsSet = new Set(Object.keys(defaultTasksPreset));
+            Object.keys(tasksMap).forEach(id => idsSet.add(id));
+            return Array.from(idsSet).sort((a, b) => {
+                const numA = parseInt(a, 10);
+                const numB = parseInt(b, 10);
+                if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                return a.localeCompare(b);
+            });
+        }
+
         async function initAuthAndData() {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -677,6 +694,7 @@
                 });
                 renderTaskGrid();
                 renderAdminTasksList();
+                populateGalleryFilterOptions();
             }, (err) => {
                 console.error("Tasks Listener Error:", err);
             });
@@ -788,9 +806,12 @@
             if (!gridEl) return;
             gridEl.innerHTML = '';
 
-            for (let num = 31; num <= 47; num++) {
-                const idStr = num.toString();
-                const task = tasksMap[idStr] || defaultTasksPreset[idStr] || { title: `${num}號任務`, type: 'quiz' };
+            const allIds = getAllTaskIds();
+            const countEl = document.getElementById('task-count-text');
+            if (countEl) countEl.innerText = `共 ${allIds.length} 個點位`;
+
+            allIds.forEach(idStr => {
+                const task = tasksMap[idStr] || defaultTasksPreset[idStr] || { title: `${idStr}號任務`, type: 'quiz' };
                 const isCompleted = completedTaskIds.has(idStr);
 
                 let typeBadge = '';
@@ -813,22 +834,22 @@
                 card.innerHTML = `
                     <div>
                         <div class="flex items-center justify-between mb-2">
-                            <span class="w-9 h-9 rounded-xl ${isCompleted ? 'bg-emerald-500 text-white' : 'bg-gradient-to-tr from-rose-500 to-pink-500 text-white'} font-black flex items-center justify-center text-sm shadow-sm">
-                                ${num}
+                            <span class="px-2 py-1 rounded-xl ${isCompleted ? 'bg-emerald-500 text-white' : 'bg-gradient-to-tr from-rose-500 to-pink-500 text-white'} font-black flex items-center justify-center text-xs shadow-sm">
+                                #${idStr}
                             </span>
                             ${isCompleted 
                                 ? '<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black flex items-center gap-1"><i class="fa-solid fa-circle-check text-emerald-600"></i> 已完成</span>'
                                 : '<span class="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-key"></i> 點擊挑戰</span>'
                             }
                         </div>
-                        <h3 class="font-black text-slate-800 text-sm line-clamp-1 mb-1">${task.title || `${num}號任務`}</h3>
+                        <h3 class="font-black text-slate-800 text-sm line-clamp-1 mb-1">${task.title || `${idStr}號任務`}</h3>
                         <div class="flex items-center gap-1.5 mt-2">
                             ${typeBadge}
                         </div>
                     </div>
                 `;
                 gridEl.appendChild(card);
-            }
+            });
         }
 
         function updateTeamHeaderUI() {
@@ -1113,10 +1134,14 @@
         function populateGalleryFilterOptions() {
             const selectEl = document.getElementById('gallery-filter');
             if (!selectEl) return;
-            selectEl.innerHTML = '<option value="ALL">全部檢查點 (31 - 47)</option>';
-            for (let i = 31; i <= 47; i++) {
-                selectEl.innerHTML += `<option value="${i}">檢查點 #${i}</option>`;
-            }
+            const currentVal = selectEl.value || 'ALL';
+            selectEl.innerHTML = '<option value="ALL">全部檢查點</option>';
+
+            const allIds = getAllTaskIds();
+            allIds.forEach(idStr => {
+                selectEl.innerHTML += `<option value="${idStr}">檢查點 #${idStr}</option>`;
+            });
+            selectEl.value = currentVal;
         }
 
         function renderGallery() {
@@ -1328,8 +1353,9 @@
             if (!container) return;
             container.innerHTML = '';
 
-            for (let num = 31; num <= 47; num++) {
-                const idStr = num.toString();
+            const allIds = getAllTaskIds();
+
+            allIds.forEach(idStr => {
                 const task = tasksMap[idStr] || defaultTasksPreset[idStr] || {
                     id: idStr, password: `${idStr}0`, title: `${idStr}號任務`, type: 'quiz', description: ''
                 };
@@ -1339,14 +1365,19 @@
                 card.innerHTML = `
                     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 font-black flex items-center justify-center text-xs">
-                                ${num}
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-900 text-amber-400 font-black flex items-center justify-center text-xs">
+                                #${idStr}
                             </span>
-                            <h3 class="font-black text-slate-800 text-base">檢查點 ${num} 號設定</h3>
+                            <h3 class="font-black text-slate-800 text-base">檢查點 ${idStr} 號設定</h3>
                         </div>
-                        <button onclick="saveAdminTask('${idStr}')" class="px-4 py-1.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl shadow-sm transition">
-                            <i class="fa-solid fa-floppy-disk me-1"></i> 儲存本關設定
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="saveAdminTask('${idStr}')" class="px-4 py-1.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl shadow-sm transition">
+                                <i class="fa-solid fa-floppy-disk me-1"></i> 儲存本關設定
+                            </button>
+                            <button onclick="promptDeleteTask('${idStr}')" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition" title="刪除此點位">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1388,8 +1419,54 @@
                     ` : ''}
                 `;
                 container.appendChild(card);
-            }
+            });
         }
+
+        window.promptAddNewTask = function() {
+            const nextIdPrompt = prompt("請輸入欲新增的檢查點編號（例如：48）：");
+            if (!nextIdPrompt) return;
+            const newId = nextIdPrompt.trim();
+            if (!newId) return;
+
+            const defaultPayload = {
+                id: newId,
+                password: `${newId}0`,
+                title: `${newId}號新關卡任務`,
+                type: "quiz",
+                description: "請填寫本關卡題目說明...",
+                options: ["選項 A", "選項 B", "選項 C", "選項 D"],
+                correctOption: 0
+            };
+
+            setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', newId), defaultPayload, { merge: true })
+                .then(() => {
+                    showToast(`成功新增檢查點 #${newId}！`, "success");
+                })
+                .catch(err => {
+                    console.error("Add task error:", err);
+                    showToast("新增失敗，請再試一次", "error");
+                });
+        };
+
+        window.promptDeleteTask = function(taskId) {
+            showConfirmModal({
+                title: `確定要刪除檢查點 #${taskId}？`,
+                message: "刪除後此點位將從前台任務清單與管理列表中移除。",
+                onConfirm: async () => {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId));
+                        delete tasksMap[taskId];
+                        renderTaskGrid();
+                        renderAdminTasksList();
+                        populateGalleryFilterOptions();
+                        showToast(`已成功刪除檢查點 #${taskId}！`, "success");
+                    } catch (err) {
+                        console.error("Delete task error:", err);
+                        showToast("刪除失敗，請再試一次", "error");
+                    }
+                }
+            });
+        };
 
         window.saveAdminTask = async function(taskId) {
             const password = document.getElementById(`admin-pass-${taskId}`).value.trim();
@@ -1429,8 +1506,8 @@
 
         window.promptResetDefaultTasks = function() {
             showConfirmModal({
-                title: "重置所有 31-47 號題庫？",
-                message: "這將會把所有檢查點的題庫與密碼恢復為預設設定。",
+                title: "重置所有題庫？",
+                message: "這將會把 31-47 號檢查點恢復為預設題庫與密碼。",
                 onConfirm: async () => {
                     await seedDefaultTasks();
                 }
@@ -1458,8 +1535,8 @@
                 "正確選項編號(correctOption: 1-4)"
             ]);
 
-            for (let i = 31; i <= 47; i++) {
-                const idStr = i.toString();
+            const allIds = getAllTaskIds();
+            allIds.forEach(idStr => {
                 const task = tasksMap[idStr] || defaultTasksPreset[idStr] || {};
                 const opts = task.options || ["", "", "", ""];
                 const correctNum = typeof task.correctOption === 'number' ? task.correctOption + 1 : 1;
@@ -1476,7 +1553,7 @@
                     opts[3] || "",
                     task.type === "quiz" ? correctNum : ""
                 ]);
-            }
+            });
 
             const worksheet = XLSX.utils.aoa_to_sheet(data);
             worksheet['!cols'] = [
@@ -1494,8 +1571,8 @@
 
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "諸羅定向趣題庫");
-            XLSX.writeFile(workbook, "諸羅定向趣_31-47題庫範例.xlsx");
-            showToast("已成功下載 31-47 號題庫 Excel 範例檔！", "success");
+            XLSX.writeFile(workbook, "諸羅定向趣_題庫彙整檔.xlsx");
+            showToast("已成功下載現有題庫 Excel 檔案！", "success");
         };
 
         window.handleBatchFileUpload = function(e) {
@@ -1526,17 +1603,17 @@
                         const row = jsonRows[r];
                         if (!row || row.length === 0) continue;
 
-                        const idStr = row[0] ? String(row[0]).trim() : '';
-                        if (!idStr || isNaN(parseInt(idStr, 10))) continue;
+                        const idStr = row[0] !== undefined && row[0] !== null ? String(row[0]).trim() : '';
+                        if (!idStr) continue;
 
-                        const password = row[1] ? String(row[1]).trim() : `${idStr}0`;
-                        const title = row[2] ? String(row[2]).trim() : `${idStr}號任務`;
-                        let type = row[3] ? String(row[3]).trim().toLowerCase() : 'quiz';
+                        const password = row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : `${idStr}0`;
+                        const title = row[2] !== undefined && row[2] !== null ? String(row[2]).trim() : `${idStr}號任務`;
+                        let type = row[3] !== undefined && row[3] !== null ? String(row[3]).trim().toLowerCase() : 'quiz';
                         if (type.includes('選擇') || type.includes('quiz')) type = 'quiz';
                         else if (type.includes('照') || type.includes('photo')) type = 'photo';
                         else if (type.includes('問答') || type.includes('文字') || type.includes('text')) type = 'text';
 
-                        const description = row[4] ? String(row[4]).trim() : '';
+                        const description = row[4] !== undefined && row[4] !== null ? String(row[4]).trim() : '';
 
                         let updatePayload = {
                             id: idStr,
@@ -1547,12 +1624,12 @@
                         };
 
                         if (type === 'quiz') {
-                            const opt1 = row[5] ? String(row[5]).trim() : '';
-                            const opt2 = row[6] ? String(row[6]).trim() : '';
-                            const opt3 = row[7] ? String(row[7]).trim() : '';
-                            const opt4 = row[8] ? String(row[8]).trim() : '';
-                            const rawCorrect = row[9] ? parseInt(String(row[9]).trim(), 10) : 1;
-                            let correctOption = rawCorrect >= 1 && rawCorrect <= 4 ? rawCorrect - 1 : 0;
+                            const opt1 = row[5] !== undefined && row[5] !== null ? String(row[5]).trim() : '';
+                            const opt2 = row[6] !== undefined && row[6] !== null ? String(row[6]).trim() : '';
+                            const opt3 = row[7] !== undefined && row[7] !== null ? String(row[7]).trim() : '';
+                            const opt4 = row[8] !== undefined && row[8] !== null ? String(row[8]).trim() : '';
+                            const rawCorrect = row[9] !== undefined && row[9] !== null ? parseInt(String(row[9]).trim(), 10) : 1;
+                            let correctOption = !isNaN(rawCorrect) && rawCorrect >= 1 && rawCorrect <= 4 ? rawCorrect - 1 : 0;
 
                             updatePayload.options = [opt1, opt2, opt3, opt4];
                             updatePayload.correctOption = correctOption;

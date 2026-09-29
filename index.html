@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>諸羅定向趣，女孩日+1</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- SheetJS Excel Library -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        chiayi: {
+                            rose: '#f43f5e',
+                            pink: '#fb7185',
+                            soft: '#fff1f2',
+                            wood: '#881337',
+                            gold: '#fbbf24',
+                            teal: '#0d9488'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans TC', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #fdf2f8; }
+        .bg-grid-pattern {
+            background-image: radial-gradient(#f43f5e 0.75px, transparent 0.75px);
+            background-size: 16px 16px;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #fda4af; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #f43f5e; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 bg-grid-pattern flex flex-col">
+
+    <header class="bg-white/90 backdrop-blur-md sticky top-0 z-40 border-b border-rose-100 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('map')">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-rose-500 to-pink-400 flex items-center justify-center text-white shadow-md font-black text-xl">
+                    <i class="fa-solid me-0.5 fa-compass"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black bg-gradient-to-r from-rose-600 via-pink-600 to-teal-600 bg-clip-text text-transparent">
+                        諸羅定向趣，女孩日+1
+                    </h1>
+                    <p class="text-xs text-rose-500 font-medium">嘉義城市定向越野 ✕ 台灣女孩日特別企劃</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex items-center gap-1 bg-rose-50 p-1 rounded-xl border border-rose-100">
+                <div id="header-team-badge" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-rose-700 border border-rose-200 shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-users text-rose-500"></i>
+                    <span id="header-team-name-text">設定隊名</span>
+                </div>
+                <button id="nav-map" onclick="switchTab('map')" class="px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 bg-rose-500 text-white shadow-sm">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <span>定向任務 (31-47)</span>
+                </button>
+                <button id="nav-gallery" onclick="switchTab('gallery')" class="px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-rose-700 hover:bg-rose-100">
+                    <i class="fa-solid fa-images"></i>
+                    <span>成果展示牆</span>
+                </button>
+                <button id="nav-admin" onclick="handleAdminTabClick()" class="px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-rose-700 hover:bg-rose-100">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span id="nav-admin-text">管理者後台</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+        <!-- Banner Alert for Setup Notice if Firebase Auth is not configured -->
+        <div id="firebase-setup-notice" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-800 flex items-start gap-3 shadow-sm">
+            <i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg mt-0.5"></i>
+            <div id="firebase-notice-text" class="flex-1 leading-relaxed"></div>
+        </div>
+
+        <!-- TAB 1: Orienteering Checkpoint Map Grid -->
+        <section id="tab-map" class="space-y-6">
+            <div class="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-400 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="max-w-2xl relative z-10 space-y-3">
+                    <span class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase">
+                        <i class="fa-solid fa-flag-checkered me-1"></i> 檢查點總覽 #31 ~ #47
+                    </span>
+                    <h2 class="text-2xl md:text-3xl font-black">歡迎參加嘉義定向越野探索！</h2>
+                    <p class="text-xs md:text-sm text-rose-100 font-medium leading-relaxed">
+                        點擊下方對應的檢查點按鈕（31-47號），輸入現場工作人員提供的關卡密碼即可開啟解鎖任務。完成挑戰展現諸羅女力+1吧！
+                    </p>
+                </div>
+            </div>
+
+            <!-- Task Grid (31 to 47) -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-location-dot text-rose-500"></i>
+                        定向探索點位任務清單
+                    </h3>
+                    <span class="text-xs text-slate-500 font-medium">共 17 個點位 (31~47)</span>
+                </div>
+                <div id="task-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <!-- Dynamic rendering by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: Showcase Gallery (成果展示牆) -->
+        <section id="tab-gallery" class="space-y-6 hidden">
+            <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-rose-100 shadow-sm">
+                <div>
+                    <h2 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-photo-film text-rose-500"></i>
+                        諸羅定向趣 成果展示牆
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">展示所有挑戰者順利通關上傳的心得與現場精采照片！</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="gallery-status-badge">
+                        <!-- Rendered by JS -->
+                    </div>
+                    <select id="gallery-filter" onchange="renderGallery()" class="px-3 py-2 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl outline-none focus:ring-2 focus:ring-rose-300">
+                        <option value="ALL">全部檢查點 (31 - 47)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Locked Notice when Gallery is closed by admin -->
+            <div id="gallery-locked-view" class="hidden text-center py-16 bg-white rounded-3xl border border-dashed border-rose-200 p-8 space-y-3">
+                <div class="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center text-3xl mx-auto shadow-inner">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-800">成果展示牆審核閉鎖中</h3>
+                <p class="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                    目前管理員尚未開放大眾瀏覽成果展示牆。活動進行中請先前往「定向任務 (31-47)」完成挑戰，成果會在管理員解鎖後統一呈現！
+                </p>
+            </div>
+
+            <!-- Submissions Container -->
+            <div id="gallery-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </section>
+
+        <!-- TAB 3: Admin Backoffice (管理者後台) -->
+        <section id="tab-admin" class="space-y-6 hidden">
+            <div class="bg-slate-900 text-white p-6 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <span class="px-2.5 py-0.5 bg-rose-500 text-white rounded-full text-xs font-black">Admin Panel</span>
+                    <h2 class="text-xl font-black mt-1">管理者後台控制面板</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">管理 31-47 號檢查點密碼、題目內容與成果牆開放狀態</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="adminLogout()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> 登出管理者
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin Action Settings -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Gallery Visibility Toggle Card -->
+                <div class="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm space-y-3">
+                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-eye text-rose-500"></i> 成果展示牆開放狀態控管
+                    </h3>
+                    <p class="text-xs text-slate-500">設定全體挑戰者是否可公開點擊瀏覽「成果展示牆」。</p>
+                    <div class="flex items-center justify-between pt-2">
+                        <span id="admin-gallery-visibility-text" class="text-xs font-bold">載入中...</span>
+                        <button id="btn-toggle-gallery-vis" onclick="toggleGalleryVisibility()" class="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl transition shadow-md">
+                            切換狀態
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Update Admin Password Card -->
+                <div class="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm space-y-3">
+                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-key text-rose-500"></i> 修改管理者通行密碼
+                    </h3>
+                    <form onsubmit="handleUpdateAdminPassword(event)" class="flex gap-2">
+                        <input type="password" id="input-new-admin-password" placeholder="輸入新密碼" required class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium focus:border-rose-500 outline-none">
+                        <button type="submit" class="px-4 py-2 bg-slate-800 hover:bg-black text-white text-xs font-bold rounded-xl transition">
+                            更換密碼
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Excel Batch Import / Export Card -->
+            <div class="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-file-excel text-emerald-600 text-lg"></i> Excel 題庫批量管理 (一鍵上傳 / 下載範例)
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1">
+                            您可以先下載包含 31~47 號關卡現有內容的 Excel 範例檔，編輯後直接上傳，即可批量更新所有題目與對應密碼！
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="downloadExcelTemplate()" class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-file-arrow-down text-emerald-600"></i> 下載 Excel 題庫範例檔
+                        </button>
+                        <button onclick="document.getElementById('excel-file-input').click()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md">
+                            <i class="fa-solid fa-file-arrow-up"></i> 一鍵上傳 Excel 題庫
+                        </button>
+                        <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleBatchFileUpload(event)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200">
+                <h3 class="text-base font-black text-slate-800 flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-users-slash text-rose-500"></i>
+                    已註冊隊伍管理
+                </h3>
+                <div id="admin-teams-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+                <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-rose-500"></i>
+                    關卡題目與密碼編輯 (31~47號)
+                </h3>
+                <button onclick="promptResetDefaultTasks()" class="text-xs text-rose-600 hover:underline font-bold">
+                    <i class="fa-solid fa-rotate-left me-1"></i>重置為預設題庫
+                </button>
+            </div>
+
+            <!-- Dynamic Admin Tasks List -->
+            <div id="admin-task-list" class="space-y-4">
+                <!-- Rendered by JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 0: Team Name Setup Modal -->
+    <div id="modal-team-setup" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-rose-100 animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center mb-3">
+                <span class="px-3 py-1 bg-rose-100 text-rose-700 text-xs font-black rounded-full"><i class="fa-solid fa-user-plus me-1"></i> 隊伍設定</span>
+                <button onclick="closeModal('modal-team-setup')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <h3 class="text-xl font-black text-slate-800 mb-1">請輸入您的姓名或隊名</h3>
+            <p class="text-xs text-slate-500 mb-5">輸入一次隊名後，接下來解鎖所有點位任務均無需再重複輸入！</p>
+
+            <form onsubmit="handleSaveTeamName(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">您的姓名 / 隊名 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="input-initial-team-name" required placeholder="例如: 嘉義小女孩 / 諸羅探索隊" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 outline-none text-sm font-medium">
+                </div>
+                <div id="team-name-error-msg" class="text-xs font-bold text-rose-600 hidden bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                    <i class="fa-solid fa-circle-exclamation me-1"></i> 此隊名已被其他隊伍使用，請更換其他隊名！
+                </div>
+                <button type="submit" class="w-full py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 transition">
+                    儲存隊名，開始探索 <i class="fa-solid fa-arrow-right ms-1"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 1: User Verification Modal (僅需輸入關卡密碼) -->
+    <div id="modal-auth" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-rose-100 animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center mb-4">
+                <span id="auth-modal-badge" class="px-3 py-1 bg-rose-100 text-rose-700 text-xs font-black rounded-full">編號 31 任務</span>
+                <button onclick="closeModal('modal-auth')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <h3 class="text-xl font-black text-slate-800 mb-1">任務解鎖驗證</h3>
+            
+            <!-- Active Team Badge -->
+            <div class="bg-rose-50 border border-rose-100 p-3 rounded-2xl flex items-center justify-between text-xs text-rose-800 mb-4">
+                <span><i class="fa-solid fa-users me-1.5 text-rose-500"></i>隊名：<strong id="auth-team-display" class="text-sm text-slate-800">--</strong></span>
+            </div>
+
+            <p class="text-xs text-slate-500 mb-4">請輸入現場工作人員提供的該關卡按鈕解鎖密碼。</p>
+
+            <form onsubmit="handleUserTaskLogin(event)" class="space-y-4">
+                <input type="hidden" id="auth-task-id" value="31">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">該關卡按鈕解鎖密碼 <span class="text-rose-500">*</span></label>
+                    <input type="password" id="input-task-password" required placeholder="請輸入本關卡的密碼" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 outline-none text-sm font-medium" autofocus>
+                </div>
+                <div id="auth-error-msg" class="text-xs font-bold text-rose-600 hidden bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                    <i class="fa-solid fa-circle-exclamation me-1"></i> 密碼不正確，請再試一次！
+                </div>
+                <button type="submit" class="w-full py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 transition">
+                    開啟任務 <i class="fa-solid fa-key ms-1"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Task Execution Page (任務題目與作答) -->
+    <div id="modal-task-exec" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-2xl max-h-[90vh] rounded-3xl shadow-2xl border border-rose-100 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+            <!-- Task Header -->
+            <div class="bg-gradient-to-r from-rose-500 to-pink-500 p-5 text-white flex items-center justify-between">
+                <div>
+                    <span id="exec-task-badge" class="bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-bold">按鈕 #31</span>
+                    <h3 id="exec-task-title" class="text-xl font-black mt-1">諸羅歷史小知識探索</h3>
+                </div>
+                <button onclick="closeModal('modal-task-exec')" class="text-white/80 hover:text-white p-2 text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Task Content Body -->
+            <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1">
+                <!-- User Banner -->
+                <div class="bg-rose-50 border border-rose-100 p-3 rounded-2xl flex items-center justify-between text-xs text-rose-800">
+                    <span><i class="fa-solid fa-user me-1"></i> 挑戰者：<strong id="exec-user-display" class="text-sm">--</strong></span>
+                    <span class="text-rose-500"><i class="fa-solid fa-clock me-1"></i> 進行中</span>
+                </div>
+
+                <!-- Description / Reading Content -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">任務說明 / 閱讀材料</h4>
+                    <p id="exec-task-desc" class="text-sm text-slate-700 leading-relaxed font-medium whitespace-pre-line">
+                        任務說明加載中...
+                    </p>
+                </div>
+
+                <!-- Interactive Answer Form -->
+                <form id="task-answer-form" onsubmit="handleTaskSubmission(event)" class="space-y-4">
+                    
+                    <!-- Dynamic Question Area depending on type -->
+                    <div id="exec-question-area" class="space-y-3">
+                        <!-- Rendered dynamically by JS -->
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                        <button type="button" onclick="closeModal('modal-task-exec')" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50">
+                            取消
+                        </button>
+                        <button type="submit" id="btn-submit-answer" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-bold shadow-lg shadow-rose-200 hover:brightness-105 transition flex items-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> 提交任務答案
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Admin Auth Modal -->
+    <div id="modal-admin-login" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-200">
+            <div class="text-center mb-4">
+                <div class="w-12 h-12 bg-slate-100 text-slate-800 rounded-2xl mx-auto flex items-center justify-center text-xl mb-2">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-800">管理者登入驗證</h3>
+                <p class="text-xs text-slate-500">請輸入管理者通行密碼 (預設：admin888)</p>
+            </div>
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <input type="password" id="input-admin-pass" required placeholder="管理者密碼" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-800 outline-none text-sm font-medium">
+                <div id="admin-login-error" class="text-xs text-rose-600 font-bold text-center hidden">
+                    密碼錯誤！請重新輸入
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-black text-white font-bold rounded-xl text-sm transition">
+                    確認登入
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: Photo Lightbox Preview -->
+    <div id="modal-image-view" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden" onclick="closeModal('modal-image-view')">
+        <div class="relative max-w-3xl max-h-[90vh] p-2" onclick="event.stopPropagation()">
+            <button onclick="closeModal('modal-image-view')" class="absolute -top-10 right-0 text-white text-2xl font-bold"><i class="fa-solid fa-xmark"></i></button>
+            <img id="lightbox-img" src="" alt="Submission detail" class="max-w-full max-h-[80vh] rounded-2xl object-contain mx-auto shadow-2xl">
+            <p id="lightbox-caption" class="text-white text-center text-sm font-bold mt-3"></p>
+        </div>
+    </div>
+
+    <!-- MODAL 5: Custom Confirm Action Modal -->
+    <div id="modal-confirm" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-rose-100 text-center space-y-4 animate-in fade-in zoom-in duration-200">
+            <div id="confirm-icon-box" class="w-14 h-14 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-2xl mx-auto">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 id="confirm-title" class="text-lg font-black text-slate-800">確認執行操作？</h3>
+                <p id="confirm-message" class="text-xs text-slate-500 mt-1">此動作無法復原，請確認是否繼續。</p>
+            </div>
+            <div class="flex items-center gap-3 pt-2">
+                <button id="btn-confirm-cancel" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                    取消
+                </button>
+                <button id="btn-confirm-ok" class="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl transition shadow-md">
+                    確認執行
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toast-msg" class="text-sm font-medium">操作成功！</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-rose-100 py-6 mt-12 text-center text-xs text-slate-400">
+        <div class="max-w-6xl mx-auto px-4 space-y-2">
+            <p class="font-medium text-slate-600">諸羅定向趣，女孩日+1 ✕ 嘉義市女孩日主題體驗活動</p>
+            <p>© 2026 Chiayi Girl's Day Orienteering. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Firebase App & Database Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'chiayi-girls-day-2026';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyAhAtRHVTJvgHE5jqXR3XV__45w0oHZjtc",
+            authDomain: "girls--orienteering.firebaseapp.com",
+            projectId: "girls--orienteering",
+            storageBucket: "girls--orienteering.firebasestorage.app",
+            messagingSenderId: "943341185702",
+            appId: "1:943341185702:web:1c8099fb41f76bfe8e2267",
+            measurementId: "G-4PG15PZK5B"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Paths strictly following Firestore Rules
+        const tasksCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
+        const submissionsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'submissions');
+        const configDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'settings');
+        const teamsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'teams');
+
+        // Local state store
+        let currentUserId = null;
+        let tasksMap = {};
+        let submissionsList = [];
+        let registeredTeamsMap = {};
+        let completedTaskIds = new Set();
+        let selectedTaskIdForLogin = null;
+        let currentEditingUser = localStorage.getItem('chiayi_girls_day_team') || '';
+        let uploadedBase64Image = null;
+        let isAdminLoggedIn = false;
+        let isGalleryPublic = false;
+        let currentAdminPassword = 'admin888';
+        let pendingConfirmCallback = null;
+
+        // Default Presets for Tasks 31 to 47
+        const defaultTasksPreset = {
+            "31": {
+                id: "31",
+                password: "310",
+                title: "31號：嘉義古城「諸羅城」歷史問答",
+                type: "quiz",
+                description: "嘉義古稱「諸羅」，建城歷史悠久。在臺灣歷史發展中，嘉義展現出豐富的文化底蘊。請問，諸羅城係於哪一年建城，且為台灣最早興建的城池之一？",
+                options: ["1704 年 (康熙43年)", "1895 年 (光緒21年)", "1920 年 (大正9年)", "1945 年 (民國34年)"],
+                correctOption: 0
+            },
+            "32": {
+                id: "32",
+                password: "320",
+                title: "32號：台灣女孩日與諸羅女力",
+                type: "quiz",
+                description: "臺灣響應聯合國國際女孩日，將每年哪一天訂為「臺灣女孩日」，用以推動保障女孩權益、充實女孩發聲機會與平等發展？",
+                options: ["3月8日", "10月11日", "12月25日", "8月8日"],
+                correctOption: 1
+            },
+            "33": {
+                id: "33",
+                password: "330",
+                title: "33號：嘉義地標「噴水池」拍照打卡",
+                type: "photo",
+                description: "中央噴水池是嘉義市的精神地標！請在噴水池周邊或活動現場比出象徵「女孩日 +1」的手勢（手比讚或+1），拍攝一張照片並上傳分享！"
+            },
+            "34": {
+                id: "34",
+                password: "340",
+                title: "34號：定向越野的符號標誌",
+                type: "quiz",
+                description: "在定向越野（Orienteering）活動中，用來表示「起點」與「終點」的標準地圖圖示分別是什麼？",
+                options: ["起點為三角形，終點為雙重圓圈", "起點為正方形，終點為星形", "起點為圓圈，終點為十字", "起點與終點皆為旗幟"],
+                correctOption: 0
+            },
+            "35": {
+                id: "35",
+                password: "350",
+                title: "35號：諸羅公園微風合照",
+                type: "photo",
+                description: "尋找嘉義公園或活動指定綠地點位，與一位同伴合照（或個人自拍），紀錄你今日熱情探索嘉義的笑容！"
+            },
+            "36": {
+                id: "36",
+                password: "360",
+                title: "36號：木都嘉義與林業文化",
+                type: "quiz",
+                description: "嘉義市因阿里山森林鐵路興建而有「木都」之美譽。請問早期盛產並透過阿里山林鐵運送的珍貴樹種主要為何者？",
+                options: ["紅檜與扁柏", "樟樹與榕樹", "黑松與相思樹", "楓香與銀杏"],
+                correctOption: 0
+            },
+            "37": {
+                id: "37",
+                password: "370",
+                title: "37號：嘉義美術館建築之美",
+                type: "photo",
+                description: "造訪嘉義市立美術館或典雅建築古蹟，拍下古蹟與現代藝術融合的獨特視角照片並上傳。"
+            },
+            "38": {
+                id: "38",
+                password: "380",
+                title: "38號：女孩運動與女力展現",
+                type: "text",
+                description: "你認為在日常生活中，女孩可以透過哪些運動或自我挑戰，展現出自信與勇敢的「+1」精神？請用50字以內簡短分享你的看法。"
+            },
+            "39": {
+                id: "39",
+                password: "390",
+                title: "39號：經典嘉義美食大探索",
+                type: "quiz",
+                description: "提到嘉義市令人流連忘返的代表性美食，下列何者最能代表嘉義的名產特色？",
+                options: ["雞肉飯與方塊酥", "淡水阿給", "台南牛肉湯", "宜蘭三星蔥餅"],
+                correctOption: 0
+            },
+            "40": {
+                id: "40",
+                password: "400",
+                title: "40號：創意定格：女孩+1特色動作",
+                type: "photo",
+                description: "發揮創意！與夥伴擺出一個具有活力、代表「女力崛起」或「探索諸羅」的創意定格動作並上傳照片！"
+            },
+            "41": {
+                id: "41",
+                password: "410",
+                title: "41號：定向越野地圖判讀知識",
+                type: "quiz",
+                description: "在標準定向越野地圖上，藍色線條或區域通常用來代表地貌上的什麼要素？",
+                options: ["水體（如河流、湖泊、池塘）", "道路與建築物", "高程等高線", "密林區域"],
+                correctOption: 0
+            },
+            "42": {
+                id: "42",
+                password: "420",
+                title: "42號：給未來的自己一封信",
+                type: "text",
+                description: "在這特別的「女孩日+1」活動中，寫下句你想鼓勵自己或全臺灣女孩的話語！"
+            },
+            "43": {
+                id: "43",
+                password: "430",
+                title: "43號：阿里山森林鐵路車庫園區",
+                type: "photo",
+                description: "拍下鐵道元素、蒸氣火車頭或活動現場的景物照片並上傳分享。"
+            },
+            "44": {
+                id: "44",
+                password: "440",
+                title: "44號：性別平等與多元包容",
+                type: "quiz",
+                description: "聯合國永續發展目標 (SDGs) 中，關於「實現性別平等，增進所有婦女和女孩的權益」是第幾項目標？",
+                options: ["SDG 5", "SDG 1", "SDG 10", "SDG 17"],
+                correctOption: 0
+            },
+            "45": {
+                id: "45",
+                password: "450",
+                title: "45號：嘉義文化公園活力探索",
+                type: "photo",
+                description: "拍攝你在嘉義市區探索時看到的陽光風景、熱情地標或隊友打卡照！"
+            },
+            "46": {
+                id: "46",
+                password: "460",
+                title: "46號：女孩日的心得小總結",
+                type: "text",
+                description: "參加今天的「諸羅定向趣，女孩日+1」活動，你最大的收穫或印象最深刻的事情是什麼？"
+            },
+            "47": {
+                id: "47",
+                password: "470",
+                title: "47號：終點讚佩！女孩+1大合照",
+                type: "photo",
+                description: "恭喜完成挑戰！上傳一張你最滿意的終點慶祝照片，紀錄完美的諸羅定向體驗！"
+            }
+        };
+
+        async function initAuthAndData() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    const userCred = await signInWithCustomToken(auth, __initial_auth_token);
+                    currentUserId = userCred.user.uid;
+                } else {
+                    const userCred = await signInAnonymously(auth);
+                    currentUserId = userCred.user.uid;
+                }
+                console.log("Authenticated User ID:", currentUserId);
+
+                listenToConfig();
+                listenToTasks();
+                listenToSubmissions();
+                listenToTeams();
+
+            } catch (err) {
+                console.error("Auth Exception:", err);
+                currentUserId = 'guest_' + Math.random().toString(36).substring(2, 9);
+
+                listenToConfig();
+                listenToTasks();
+                listenToSubmissions();
+                listenToTeams();
+
+                if (err.code === 'auth/configuration-not-found' || (err.message && err.message.includes('configuration-not-found'))) {
+                    showNoticeBanner("⚠️ <b>Firebase 驗證未開啟：</b>請登入 <a href='https://console.firebase.google.com/' target='_blank' class='underline font-bold text-amber-900'>Firebase Console</a> ➔ 點擊左側 <b>Authentication</b> ➔ <b>Sign-in method</b> ➔ 啟用<b>「匿名 (Anonymous)」</b>登入！");
+                    showToast("請至 Firebase Console 啟用匿名登入", "error");
+                } else {
+                    showToast("連線或驗證失敗，請檢查 Firebase 設定", "error");
+                }
+            }
+        }
+
+        function showNoticeBanner(msgHtml) {
+            const noticeEl = document.getElementById('firebase-setup-notice');
+            const textEl = document.getElementById('firebase-notice-text');
+            if (noticeEl && textEl) {
+                textEl.innerHTML = msgHtml;
+                noticeEl.classList.remove('hidden');
+            }
+        }
+
+        function listenToConfig() {
+            onSnapshot(configDocRef, (snap) => {
+                if (snap.exists()) {
+                    const data = snap.data();
+                    isGalleryPublic = data.isGalleryPublic ?? false;
+                    currentAdminPassword = data.adminPassword || 'admin888';
+                } else {
+                    setDoc(configDocRef, {
+                        isGalleryPublic: false,
+                        adminPassword: 'admin888'
+                    }, { merge: true });
+                }
+                updateGalleryVisibilityUI();
+            }, (err) => console.error("Config Listener Error:", err));
+        }
+
+        function listenToTasks() {
+            onSnapshot(tasksCollectionRef, (snapshot) => {
+                if (snapshot.empty) {
+                    seedDefaultTasks();
+                    return;
+                }
+                tasksMap = {};
+                snapshot.forEach(docSnap => {
+                    tasksMap[docSnap.id] = docSnap.data();
+                });
+                renderTaskGrid();
+                renderAdminTasksList();
+            }, (err) => {
+                console.error("Tasks Listener Error:", err);
+            });
+        }
+
+        function listenToSubmissions() {
+            onSnapshot(submissionsCollectionRef, (snapshot) => {
+                submissionsList = [];
+                completedTaskIds.clear();
+
+                snapshot.forEach(docSnap => {
+                    const subData = { id: docSnap.id, ...docSnap.data() };
+                    submissionsList.push(subData);
+                    
+                    if (subData.userId === currentUserId || (currentEditingUser && subData.userName === currentEditingUser)) {
+                        completedTaskIds.add(subData.taskId);
+                    }
+                });
+
+                submissionsList.sort((a, b) => {
+                    const taskIdA = parseInt(a.taskId, 10) || 0;
+                    const taskIdB = parseInt(b.taskId, 10) || 0;
+                    if (taskIdA !== taskIdB) {
+                        return taskIdA - taskIdB;
+                    }
+                    return (b.createdAt || 0) - (a.createdAt || 0);
+                });
+
+                renderTaskGrid();
+                renderGallery();
+            }, (err) => {
+                console.error("Submissions Listener Error:", err);
+            });
+        }
+
+        function listenToTeams() {
+            onSnapshot(teamsCollectionRef, (snapshot) => {
+                registeredTeamsMap = {};
+                snapshot.forEach(docSnap => {
+                    registeredTeamsMap[docSnap.id] = docSnap.data();
+                });
+                renderAdminTeamsList();
+            }, (err) => {
+                console.error("Teams Listener Error:", err);
+            });
+        }
+
+        async function seedDefaultTasks() {
+            if (!auth.currentUser) return;
+            for (const [id, data] of Object.entries(defaultTasksPreset)) {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), data);
+            }
+            showToast("已載入預設 31-47 號題庫！", "success");
+        }
+
+        window.switchTab = function(tabName) {
+            document.getElementById('tab-map').classList.add('hidden');
+            document.getElementById('tab-gallery').classList.add('hidden');
+            document.getElementById('tab-admin').classList.add('hidden');
+
+            document.getElementById('nav-map').className = "px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-rose-700 hover:bg-rose-100";
+            document.getElementById('nav-gallery').className = "px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-rose-700 hover:bg-rose-100";
+            document.getElementById('nav-admin').className = "px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-rose-700 hover:bg-rose-100";
+
+            if (tabName === 'map') {
+                document.getElementById('tab-map').classList.remove('hidden');
+                document.getElementById('nav-map').className = "px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 bg-rose-500 text-white shadow-sm";
+            } else if (tabName === 'gallery') {
+                document.getElementById('tab-gallery').classList.remove('hidden');
+                document.getElementById('nav-gallery').className = "px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 bg-rose-500 text-white shadow-sm";
+                populateGalleryFilterOptions();
+                renderGallery();
+            } else if (tabName === 'admin') {
+                document.getElementById('tab-admin').classList.remove('hidden');
+                document.getElementById('nav-admin').className = "px-3 md:px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 bg-slate-800 text-white shadow-sm";
+                renderAdminTasksList();
+                renderAdminTeamsList();
+            }
+        };
+
+        window.handleAdminTabClick = function() {
+            if (isAdminLoggedIn) {
+                switchTab('admin');
+            } else {
+                openModal('modal-admin-login');
+            }
+        };
+
+        function updateGalleryVisibilityUI() {
+            const badge = document.getElementById('gallery-status-badge');
+            const visText = document.getElementById('admin-gallery-visibility-text');
+            const btnVis = document.getElementById('btn-toggle-gallery-vis');
+
+            if (isGalleryPublic) {
+                if (badge) badge.innerHTML = `<span class="text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-lock-open me-1"></i> 大眾已可瀏覽</span>`;
+                if (visText) visText.innerHTML = `<span class="text-emerald-600 font-extrabold">🔓 已開放 (大眾可直接瀏覽)</span>`;
+                if (btnVis) btnVis.innerHTML = `<i class="fa-solid fa-lock"></i> 切換為暫停開放`;
+            } else {
+                if (badge) badge.innerHTML = `<span class="text-amber-800 bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-lock me-1"></i> 展示牆審核閉鎖中</span>`;
+                if (visText) visText.innerHTML = `<span class="text-amber-600 font-extrabold">🔒 閉鎖中 (僅管理員可見)</span>`;
+                if (btnVis) btnVis.innerHTML = `<i class="fa-solid fa-lock-open"></i> 獨立開放大眾瀏覽`;
+            }
+
+            renderGallery();
+        }
+
+        function renderTaskGrid() {
+            const gridEl = document.getElementById('task-grid');
+            if (!gridEl) return;
+            gridEl.innerHTML = '';
+
+            for (let num = 31; num <= 47; num++) {
+                const idStr = num.toString();
+                const task = tasksMap[idStr] || defaultTasksPreset[idStr] || { title: `${num}號任務`, type: 'quiz' };
+                const isCompleted = completedTaskIds.has(idStr);
+
+                let typeBadge = '';
+                if (task.type === 'photo') {
+                    typeBadge = '<span class="text-[10px] px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 font-bold"><i class="fa-solid fa-camera me-1"></i>照片上傳</span>';
+                } else if (task.type === 'text') {
+                    typeBadge = '<span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold"><i class="fa-solid fa-pen-to-square me-1"></i>心得問答</span>';
+                } else {
+                    typeBadge = '<span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold"><i class="fa-solid fa-list-check me-1"></i>閱讀測驗</span>';
+                }
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-sm hover:shadow-md ${
+                    isCompleted 
+                        ? 'bg-emerald-50/80 border-emerald-200 hover:border-emerald-300' 
+                        : 'bg-white border-rose-100 hover:border-rose-300 hover:-translate-y-0.5'
+                }`;
+                card.onclick = () => openTaskLoginModal(idStr);
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="w-9 h-9 rounded-xl ${isCompleted ? 'bg-emerald-500 text-white' : 'bg-gradient-to-tr from-rose-500 to-pink-500 text-white'} font-black flex items-center justify-center text-sm shadow-sm">
+                                ${num}
+                            </span>
+                            ${isCompleted 
+                                ? '<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black flex items-center gap-1"><i class="fa-solid fa-circle-check text-emerald-600"></i> 已完成</span>'
+                                : '<span class="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-key"></i> 點擊挑戰</span>'
+                            }
+                        </div>
+                        <h3 class="font-black text-slate-800 text-sm line-clamp-1 mb-1">${task.title || `${num}號任務`}</h3>
+                        <div class="flex items-center gap-1.5 mt-2">
+                            ${typeBadge}
+                        </div>
+                    </div>
+                `;
+                gridEl.appendChild(card);
+            }
+        }
+
+        function updateTeamHeaderUI() {
+            const nameText = document.getElementById('header-team-name-text');
+            const teamBadge = document.getElementById('header-team-badge');
+            if (nameText) {
+                if (currentEditingUser) {
+                    nameText.innerText = `隊伍：${currentEditingUser}`;
+                    if (teamBadge) {
+                        teamBadge.onclick = null;
+                        teamBadge.classList.remove('cursor-pointer', 'hover:bg-rose-100');
+                    }
+                } else {
+                    nameText.innerText = '設定隊名';
+                    if (teamBadge) {
+                        teamBadge.onclick = openTeamSetupModal;
+                        teamBadge.classList.add('cursor-pointer', 'hover:bg-rose-100');
+                    }
+                }
+            }
+        }
+
+        window.openTeamSetupModal = function() {
+            const input = document.getElementById('input-initial-team-name');
+            const errorEl = document.getElementById('team-name-error-msg');
+            if (input) input.value = currentEditingUser || '';
+            if (errorEl) errorEl.classList.add('hidden');
+            openModal('modal-team-setup');
+        };
+
+        window.handleSaveTeamName = async function(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('input-initial-team-name').value.trim();
+            const errorEl = document.getElementById('team-name-error-msg');
+            if (errorEl) errorEl.classList.add('hidden');
+
+            if (!nameInput) return;
+
+            const lowerInput = nameInput.toLowerCase();
+
+            // 檢查是否有其他使用者（userId 不同）已經註冊了相同的隊名
+            const isDuplicateInTeams = Object.entries(registeredTeamsMap).some(([uId, tData]) => {
+                return uId !== currentUserId && tData.name && tData.name.trim().toLowerCase() === lowerInput;
+            });
+
+            // 檢查成果牆上的歷史投稿是否有其他使用者使用過此隊名
+            const isDuplicateInSubmissions = submissionsList.some(sub => {
+                return sub.userId !== currentUserId && sub.userName && sub.userName.trim().toLowerCase() === lowerInput;
+            });
+
+            if (isDuplicateInTeams || isDuplicateInSubmissions) {
+                if (errorEl) {
+                    errorEl.innerHTML = `<i class="fa-solid fa-circle-exclamation me-1"></i> 隊名「<strong>${nameInput}</strong>」已被其他隊伍使用，請更換其他隊名！`;
+                    errorEl.classList.remove('hidden');
+                } else {
+                    showToast(`隊名「${nameInput}」已被其他隊伍使用！`, "error");
+                }
+                return;
+            }
+
+            currentEditingUser = nameInput;
+            localStorage.setItem('chiayi_girls_day_team', currentEditingUser);
+
+            // 將隊名同步登記到 Firestore 隊伍資料庫中
+            if (currentUserId && auth.currentUser) {
+                try {
+                    await setDoc(doc(teamsCollectionRef, currentUserId), {
+                        name: currentEditingUser,
+                        userId: currentUserId,
+                        updatedAt: Date.now()
+                    }, { merge: true });
+                } catch (err) {
+                    console.error("Save Team Firestore Error:", err);
+                }
+            }
+
+            updateTeamHeaderUI();
+            closeModal('modal-team-setup');
+            showToast(`隊名已成功設定為：「${currentEditingUser}」`, "success");
+
+            if (selectedTaskIdForLogin) {
+                openTaskLoginModal(selectedTaskIdForLogin);
+            }
+        };
+
+        window.openTaskLoginModal = function(taskId) {
+            selectedTaskIdForLogin = taskId;
+
+            if (!currentEditingUser) {
+                openTeamSetupModal();
+                return;
+            }
+
+            document.getElementById('auth-task-id').value = taskId;
+            document.getElementById('auth-modal-badge').innerText = `檢查點按鈕 #${taskId}`;
+            document.getElementById('auth-team-display').innerText = currentEditingUser;
+            document.getElementById('auth-error-msg').classList.add('hidden');
+            document.getElementById('input-task-password').value = '';
+            
+            openModal('modal-auth');
+        };
+
+        window.handleUserTaskLogin = function(e) {
+            e.preventDefault();
+            const taskId = selectedTaskIdForLogin;
+            const passwordInput = document.getElementById('input-task-password').value.trim();
+
+            const task = tasksMap[taskId] || defaultTasksPreset[taskId];
+            const correctPassword = task ? task.password : `${taskId}0`;
+
+            if (passwordInput === correctPassword) {
+                closeModal('modal-auth');
+                document.getElementById('input-task-password').value = '';
+                openTaskExecModal(taskId, currentEditingUser);
+            } else {
+                document.getElementById('auth-error-msg').classList.remove('hidden');
+            }
+        };
+
+        function openTaskExecModal(taskId, userName) {
+            const task = tasksMap[taskId] || defaultTasksPreset[taskId];
+            document.getElementById('exec-task-badge').innerText = `檢查點 #${taskId}`;
+            document.getElementById('exec-task-title').innerText = task.title || `關卡 #${taskId}`;
+            document.getElementById('exec-user-display').innerText = userName;
+            document.getElementById('exec-task-desc').innerText = task.description || "請閱讀說明並回答下方問題。";
+
+            const area = document.getElementById('exec-question-area');
+            area.innerHTML = '';
+            uploadedBase64Image = null;
+
+            if (task.type === 'photo') {
+                area.innerHTML = `
+                    <div class="space-y-3">
+                        <label class="block text-xs font-bold text-slate-700">拍照或上傳任務照片 <span class="text-rose-500">*</span></label>
+                        <div class="border-2 border-dashed border-rose-200 hover:border-rose-400 bg-rose-50/50 rounded-2xl p-6 text-center cursor-pointer transition relative" onclick="document.getElementById('photo-upload-input').click()">
+                            <input type="file" id="photo-upload-input" accept="image/*" class="hidden" onchange="handlePhotoSelect(event)">
+                            <div id="photo-preview-container" class="hidden space-y-2">
+                                <img id="photo-preview-img" src="" alt="Preview" class="max-h-48 mx-auto rounded-xl shadow-md border border-white">
+                                <p class="text-xs text-rose-600 font-bold"><i class="fa-solid fa-arrows-rotate me-1"></i>點擊可重新選擇相簿或拍照</p>
+                            </div>
+                            <div id="photo-upload-placeholder" class="space-y-3">
+                                <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-500 flex items-center justify-center mx-auto text-xl shadow-inner">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-slate-700">點此上傳照片（支援相簿與拍照）</p>
+                                    <p class="text-xs text-slate-400 mt-1">點擊後可從手機/電腦相簿選擇，或直接拍照</p>
+                                </div>
+                                <div class="flex justify-center gap-2 pt-1">
+                                    <span class="px-3 py-1 bg-white border border-rose-200 rounded-lg text-xs font-bold text-rose-700 shadow-sm flex items-center gap-1">
+                                        <i class="fa-solid fa-images"></i> 從相簿選擇
+                                    </span>
+                                    <span class="px-3 py-1 bg-white border border-rose-200 rounded-lg text-xs font-bold text-rose-700 shadow-sm flex items-center gap-1">
+                                        <i class="fa-solid fa-camera"></i> 現場拍照
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">心得感言 / 照片說明 (選填)</label>
+                            <input type="text" id="input-photo-caption" placeholder="為這張照片寫一句心得吧！" class="w-full px-4 py-2 rounded-xl border border-slate-200 text-sm focus:border-rose-400 outline-none">
+                        </div>
+                    </div>
+                `;
+            } else if (task.type === 'text') {
+                area.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">您的回答 <span class="text-rose-500">*</span></label>
+                        <textarea id="input-text-answer" required rows="4" placeholder="請在此輸入您的回答內容..." class="w-full p-3 rounded-xl border border-slate-200 text-sm focus:border-rose-400 outline-none"></textarea>
+                    </div>
+                `;
+            } else {
+                const opts = task.options || ["選項 A", "選項 B", "選項 C", "選項 D"];
+                let optionsHtml = opts.map((opt, idx) => `
+                    <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-rose-300 hover:bg-rose-50/50 cursor-pointer transition">
+                        <input type="radio" name="quiz_option" value="${idx}" required class="w-4 h-4 text-rose-600 focus:ring-rose-400">
+                        <span class="text-sm font-bold text-slate-700">${opt}</span>
+                    </label>
+                `).join('');
+
+                area.innerHTML = `
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-2">請選擇正確答案：<span class="text-rose-500">*</span></label>
+                        ${optionsHtml}
+                    </div>
+                `;
+            }
+
+            openModal('modal-task-exec');
+        }
+
+        window.handlePhotoSelect = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > MAX_WIDTH) {
+                        height = Math.round((height * MAX_WIDTH) / width);
+                        width = MAX_WIDTH;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    uploadedBase64Image = canvas.toDataURL('image/jpeg', 0.65);
+
+                    document.getElementById('photo-preview-img').src = uploadedBase64Image;
+                    document.getElementById('photo-preview-container').classList.remove('hidden');
+                    document.getElementById('photo-upload-placeholder').classList.add('hidden');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.handleTaskSubmission = async function(e) {
+            e.preventDefault();
+            const taskId = selectedTaskIdForLogin;
+            const userName = currentEditingUser;
+            const task = tasksMap[taskId] || defaultTasksPreset[taskId];
+
+            let submissionData = {
+                taskId: taskId,
+                taskTitle: task.title || `任務 #${taskId}`,
+                taskType: task.type,
+                userName: userName,
+                userId: currentUserId,
+                createdAt: Date.now()
+            };
+
+            if (task.type === 'photo') {
+                if (!uploadedBase64Image) {
+                    showToast("請先選擇或拍照上傳一張照片喔！", "error");
+                    return;
+                }
+                submissionData.photoData = uploadedBase64Image;
+                submissionData.caption = document.getElementById('input-photo-caption')?.value.trim() || '';
+                submissionData.answerText = submissionData.caption || '[上傳了照片]';
+            } else if (task.type === 'text') {
+                const textAns = document.getElementById('input-text-answer').value.trim();
+                if (!textAns) {
+                    showToast("請輸入您的回答再提交！", "error");
+                    return;
+                }
+                submissionData.answerText = textAns;
+            } else {
+                const selectedOpt = document.querySelector('input[name="quiz_option"]:checked');
+                if (!selectedOpt) {
+                    showToast("請選擇一個答案！", "error");
+                    return;
+                }
+                const optIndex = parseInt(selectedOpt.value, 10);
+                submissionData.selectedOptionIndex = optIndex;
+                submissionData.selectedOptionText = task.options[optIndex];
+                submissionData.isCorrect = (optIndex === task.correctOption);
+                submissionData.answerText = `選擇了：${task.options[optIndex]} ${submissionData.isCorrect ? '✅ (正確)' : '❌'}`;
+            }
+
+            try {
+                await setDoc(doc(submissionsCollectionRef, `${taskId}_${currentUserId}_${Date.now()}`), submissionData);
+                completedTaskIds.add(taskId);
+                
+                closeModal('modal-task-exec');
+                showToast(`🎉 恭喜！您已成功完成 ${taskId} 號任務！`, "success");
+
+            } catch (err) {
+                console.error("Submission Error:", err);
+                showToast("提交失敗，請檢查網路連線", "error");
+            }
+        };
+
+        function populateGalleryFilterOptions() {
+            const selectEl = document.getElementById('gallery-filter');
+            if (!selectEl) return;
+            selectEl.innerHTML = '<option value="ALL">全部檢查點 (31 - 47)</option>';
+            for (let i = 31; i <= 47; i++) {
+                selectEl.innerHTML += `<option value="${i}">檢查點 #${i}</option>`;
+            }
+        }
+
+        function renderGallery() {
+            const container = document.getElementById('gallery-cards');
+            const lockedView = document.getElementById('gallery-locked-view');
+            const filterVal = document.getElementById('gallery-filter')?.value || 'ALL';
+            if (!container || !lockedView) return;
+
+            if (!isGalleryPublic && !isAdminLoggedIn) {
+                lockedView.classList.remove('hidden');
+                container.classList.add('hidden');
+                return;
+            }
+
+            lockedView.classList.add('hidden');
+            container.classList.remove('hidden');
+
+            let filtered = submissionsList;
+            if (filterVal !== 'ALL') {
+                filtered = submissionsList.filter(s => s.taskId === filterVal);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-rose-200">
+                        <i class="fa-solid fa-folder-open text-5xl text-rose-200 mb-3"></i>
+                        <p class="text-base font-bold text-slate-600">尚無相關投稿內容</p>
+                        <p class="text-xs text-slate-400 mt-1">完成該檢查點任務後，成果將即時呈現在此處！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(sub => {
+                const dateStr = new Date(sub.createdAt).toLocaleString('zh-TW', { hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                
+                let contentBlock = '';
+                if (sub.taskType === 'photo' && sub.photoData) {
+                    contentBlock = `
+                        <div class="relative overflow-hidden rounded-2xl bg-slate-100 group cursor-pointer" onclick="openLightbox('${sub.photoData}', '${sub.userName} 的照片 - ${sub.caption || ''}')">
+                            <img src="${sub.photoData}" alt="User photo" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-sm">
+                                <i class="fa-solid fa-magnifying-glass-plus me-1"></i> 點擊放大照片
+                            </div>
+                        </div>
+                        ${sub.caption ? `<p class="text-xs text-slate-600 italic bg-rose-50/50 p-2 rounded-xl border border-rose-100">"${sub.caption}"</p>` : ''}
+                    `;
+                } else if (sub.taskType === 'quiz') {
+                    contentBlock = `
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs font-medium space-y-1">
+                            <span class="text-slate-400 block text-[10px]">作答選項：</span>
+                            <div class="font-bold text-slate-800 flex items-center justify-between">
+                                <span>${sub.selectedOptionText || sub.answerText}</span>
+                                ${sub.isCorrect ? '<span class="text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-circle-check me-1"></i>正確</span>' : ''}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    contentBlock = `
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs text-slate-700 whitespace-pre-line leading-relaxed font-medium">
+                            ${sub.answerText}
+                        </div>
+                    `;
+                }
+
+                const deleteButtonHtml = isAdminLoggedIn ? `
+                    <button onclick="promptDeleteSubmission('${sub.id}')" class="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 text-[11px] font-bold rounded-lg transition flex items-center gap-1">
+                        <i class="fa-solid fa-trash-can"></i> 刪除
+                    </button>
+                ` : '';
+
+                return `
+                    <div class="bg-white rounded-3xl p-5 shadow-sm border border-rose-100 hover:shadow-md transition space-y-3 relative group">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-rose-400 to-pink-400 text-white font-black text-xs flex items-center justify-center shadow-sm">
+                                    ${sub.userName ? sub.userName.substring(0, 1) : '女'}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-slate-800">${sub.userName || '挑戰者'}</h4>
+                                    <span class="text-[10px] text-slate-400">${dateStr}</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="bg-rose-100 text-rose-700 font-extrabold text-xs px-2.5 py-1 rounded-full">
+                                    檢查點 #${sub.taskId}
+                                </span>
+                                ${deleteButtonHtml}
+                            </div>
+                        </div>
+                        <h5 class="text-xs font-bold text-rose-600 truncate"><i class="fa-solid fa-flag me-1"></i>${sub.taskTitle}</h5>
+                        ${contentBlock}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.handleAdminLogin = function(e) {
+            e.preventDefault();
+            const pass = document.getElementById('input-admin-pass').value.trim();
+            if (pass === currentAdminPassword || pass === 'admin888') {
+                isAdminLoggedIn = true;
+                closeModal('modal-admin-login');
+                document.getElementById('input-admin-pass').value = '';
+                document.getElementById('nav-admin-text').innerText = "管理員專區";
+                switchTab('admin');
+                showToast("解鎖成功！已登入管理者後台", "success");
+            } else {
+                document.getElementById('admin-login-error').classList.remove('hidden');
+            }
+        };
+
+        window.adminLogout = function() {
+            isAdminLoggedIn = false;
+            document.getElementById('nav-admin-text').innerText = "管理者後台";
+            switchTab('map');
+            showToast("已成功登出管理員身分", "info");
+        };
+
+        window.toggleGalleryVisibility = async function() {
+            const nextState = !isGalleryPublic;
+            try {
+                await setDoc(configDocRef, { isGalleryPublic: nextState }, { merge: true });
+                showToast(nextState ? "成果展示牆已開放全體瀏覽！" : "成果展示牆已切換為不公開", "success");
+            } catch (err) {
+                console.error("Toggle Vis Error:", err);
+                showToast("設定失敗，請確認權限", "error");
+            }
+        };
+
+        window.handleUpdateAdminPassword = async function(e) {
+            e.preventDefault();
+            const newPass = document.getElementById('input-new-admin-password').value.trim();
+            if (!newPass) return;
+
+            try {
+                await setDoc(configDocRef, { adminPassword: newPass }, { merge: true });
+                document.getElementById('input-new-admin-password').value = '';
+                showToast("管理員密碼已成功更新！", "success");
+            } catch (err) {
+                console.error("Update Pass Error:", err);
+                showToast("更新密碼失敗", "error");
+            }
+        };
+
+        window.promptDeleteSubmission = function(subId) {
+            showConfirmModal({
+                title: "確定要刪除此筆成果？",
+                message: "刪除後此照片與回答將從展示牆永久移除且無法復原。",
+                onConfirm: async () => {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'submissions', subId));
+                        showToast("已成功刪除該筆投稿！", "success");
+                    } catch (err) {
+                        console.error("Delete submission error:", err);
+                        showToast("刪除失敗，請再試一次", "error");
+                    }
+                }
+            });
+        };
+
+        function renderAdminTeamsList() {
+            const container = document.getElementById('admin-teams-list');
+            if (!container) return;
+
+            const teamKeys = Object.keys(registeredTeamsMap);
+            if (teamKeys.length === 0) {
+                container.innerHTML = `<div class="col-span-full p-4 bg-slate-50 rounded-xl text-center text-xs text-slate-500 border border-slate-200">目前尚無已註冊的隊伍</div>`;
+                return;
+            }
+
+            container.innerHTML = teamKeys.map(teamId => {
+                const team = registeredTeamsMap[teamId];
+                return `
+                    <div class="bg-white p-3 rounded-2xl border border-rose-100 shadow-sm flex items-center justify-between gap-2">
+                        <div class="truncate">
+                            <h4 class="text-sm font-bold text-slate-800 truncate">${team.name}</h4>
+                            <p class="text-[10px] text-slate-400 truncate">ID: ${teamId.substring(0, 6)}...</p>
+                        </div>
+                        <button onclick="promptDeleteTeam('${teamId}')" class="shrink-0 w-8 h-8 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white flex items-center justify-center transition" title="刪除隊伍">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.promptDeleteTeam = function(teamId) {
+            const team = registeredTeamsMap[teamId];
+            if (!team) return;
+            
+            showConfirmModal({
+                title: "確定要刪除此隊伍？",
+                message: `即將刪除隊伍「${team.name}」。刪除後該隊伍名稱將釋出，其他使用者可重新註冊使用此名稱。`,
+                onConfirm: async () => {
+                    try {
+                        await deleteDoc(doc(teamsCollectionRef, teamId));
+                        showToast(`已成功刪除隊伍「${team.name}」！`, "success");
+                    } catch (err) {
+                        console.error("Delete team error:", err);
+                        showToast("刪除隊伍失敗，請再試一次", "error");
+                    }
+                }
+            });
+        };
+
+        function renderAdminTasksList() {
+            const container = document.getElementById('admin-task-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            for (let num = 31; num <= 47; num++) {
+                const idStr = num.toString();
+                const task = tasksMap[idStr] || defaultTasksPreset[idStr] || {
+                    id: idStr, password: `${idStr}0`, title: `${idStr}號任務`, type: 'quiz', description: ''
+                };
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4";
+                card.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 font-black flex items-center justify-center text-xs">
+                                ${num}
+                            </span>
+                            <h3 class="font-black text-slate-800 text-base">檢查點 ${num} 號設定</h3>
+                        </div>
+                        <button onclick="saveAdminTask('${idStr}')" class="px-4 py-1.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl shadow-sm transition">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> 儲存本關設定
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">該編號按鈕解鎖密碼</label>
+                            <input type="text" id="admin-pass-${idStr}" value="${task.password || `${idStr}0`}" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:border-rose-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">關卡標題</label>
+                            <input type="text" id="admin-title-${idStr}" value="${task.title || ''}" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold focus:border-rose-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">題目類型</label>
+                            <select id="admin-type-${idStr}" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold focus:border-rose-500 outline-none">
+                                <option value="quiz" ${task.type === 'quiz' ? 'selected' : ''}>閱讀測驗 (選擇題)</option>
+                                <option value="photo" ${task.type === 'photo' ? 'selected' : ''}>照片拍照/上傳題</option>
+                                <option value="text" ${task.type === 'text' ? 'selected' : ''}>文字問答題</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">閱讀材料 / 題目說明</label>
+                        <textarea id="admin-desc-${idStr}" rows="2" class="w-full p-3 border border-slate-200 rounded-xl text-xs focus:border-rose-500 outline-none">${task.description || ''}</textarea>
+                    </div>
+
+                    ${task.type === 'quiz' ? `
+                    <div class="bg-rose-50/60 p-3 rounded-xl border border-rose-100 space-y-2">
+                        <label class="block text-xs font-bold text-rose-800">選擇題選項與正確答案 (單選)：</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            ${(task.options || ["選項 A", "選項 B", "選項 C", "選項 D"]).map((opt, oIdx) => `
+                                <div class="flex items-center gap-2 bg-white p-2 rounded-lg border border-rose-200">
+                                    <input type="radio" name="admin-correct-${idStr}" value="${oIdx}" ${task.correctOption === oIdx ? 'checked' : ''} class="text-rose-600">
+                                    <input type="text" id="admin-opt-${idStr}-${oIdx}" value="${opt}" class="w-full text-xs border-none outline-none font-medium">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+                container.appendChild(card);
+            }
+        }
+
+        window.saveAdminTask = async function(taskId) {
+            const password = document.getElementById(`admin-pass-${taskId}`).value.trim();
+            const title = document.getElementById(`admin-title-${taskId}`).value.trim();
+            const type = document.getElementById(`admin-type-${taskId}`).value;
+            const description = document.getElementById(`admin-desc-${taskId}`).value.trim();
+
+            let updatePayload = {
+                id: taskId,
+                password,
+                title,
+                type,
+                description
+            };
+
+            if (type === 'quiz') {
+                const options = [];
+                for (let i = 0; i < 4; i++) {
+                    const optInput = document.getElementById(`admin-opt-${taskId}-${i}`);
+                    options.push(optInput ? optInput.value.trim() : `選項 ${i+1}`);
+                }
+                const correctRadio = document.querySelector(`input[name="admin-correct-${taskId}"]:checked`);
+                const correctOption = correctRadio ? parseInt(correctRadio.value, 10) : 0;
+
+                updatePayload.options = options;
+                updatePayload.correctOption = correctOption;
+            }
+
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), updatePayload, { merge: true });
+                showToast(`已更新檢查點 #${taskId} 的密碼與內容！`, "success");
+            } catch (err) {
+                console.error("Save Admin Task Error:", err);
+                showToast("更新失敗，請檢查權限", "error");
+            }
+        };
+
+        window.promptResetDefaultTasks = function() {
+            showConfirmModal({
+                title: "重置所有 31-47 號題庫？",
+                message: "這將會把所有檢查點的題庫與密碼恢復為預設設定。",
+                onConfirm: async () => {
+                    await seedDefaultTasks();
+                }
+            });
+        };
+
+        window.downloadExcelTemplate = function() {
+            if (typeof XLSX === 'undefined') {
+                showToast("Excel 套件加載中，請稍後再試", "error");
+                return;
+            }
+
+            const data = [];
+            // Header Row
+            data.push([
+                "關卡編號(id)",
+                "解鎖密碼(password)",
+                "關卡標題(title)",
+                "題型(type: quiz/photo/text)",
+                "閱讀材料/說明(description)",
+                "選項1(option1)",
+                "選項2(option2)",
+                "選項3(option3)",
+                "選項4(option4)",
+                "正確選項編號(correctOption: 1-4)"
+            ]);
+
+            for (let i = 31; i <= 47; i++) {
+                const idStr = i.toString();
+                const task = tasksMap[idStr] || defaultTasksPreset[idStr] || {};
+                const opts = task.options || ["", "", "", ""];
+                const correctNum = typeof task.correctOption === 'number' ? task.correctOption + 1 : 1;
+
+                data.push([
+                    idStr,
+                    task.password || `${idStr}0`,
+                    task.title || `${idStr}號任務`,
+                    task.type || "quiz",
+                    task.description || "",
+                    opts[0] || "",
+                    opts[1] || "",
+                    opts[2] || "",
+                    opts[3] || "",
+                    task.type === "quiz" ? correctNum : ""
+                ]);
+            }
+
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            worksheet['!cols'] = [
+                { wch: 14 },
+                { wch: 18 },
+                { wch: 30 },
+                { wch: 22 },
+                { wch: 45 },
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 28 }
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "諸羅定向趣題庫");
+            XLSX.writeFile(workbook, "諸羅定向趣_31-47題庫範例.xlsx");
+            showToast("已成功下載 31-47 號題庫 Excel 範例檔！", "success");
+        };
+
+        window.handleBatchFileUpload = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (typeof XLSX === 'undefined') {
+                showToast("Excel 解析模組加載中，請稍後再試", "error");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (jsonRows.length < 2) {
+                        showToast("檔案中沒有足夠的題庫資料！", "error");
+                        return;
+                    }
+
+                    let updatedCount = 0;
+                    for (let r = 1; r < jsonRows.length; r++) {
+                        const row = jsonRows[r];
+                        if (!row || row.length === 0) continue;
+
+                        const idStr = row[0] ? String(row[0]).trim() : '';
+                        if (!idStr || isNaN(parseInt(idStr, 10))) continue;
+
+                        const password = row[1] ? String(row[1]).trim() : `${idStr}0`;
+                        const title = row[2] ? String(row[2]).trim() : `${idStr}號任務`;
+                        let type = row[3] ? String(row[3]).trim().toLowerCase() : 'quiz';
+                        if (type.includes('選擇') || type.includes('quiz')) type = 'quiz';
+                        else if (type.includes('照') || type.includes('photo')) type = 'photo';
+                        else if (type.includes('問答') || type.includes('文字') || type.includes('text')) type = 'text';
+
+                        const description = row[4] ? String(row[4]).trim() : '';
+
+                        let updatePayload = {
+                            id: idStr,
+                            password,
+                            title,
+                            type,
+                            description
+                        };
+
+                        if (type === 'quiz') {
+                            const opt1 = row[5] ? String(row[5]).trim() : '';
+                            const opt2 = row[6] ? String(row[6]).trim() : '';
+                            const opt3 = row[7] ? String(row[7]).trim() : '';
+                            const opt4 = row[8] ? String(row[8]).trim() : '';
+                            const rawCorrect = row[9] ? parseInt(String(row[9]).trim(), 10) : 1;
+                            let correctOption = rawCorrect >= 1 && rawCorrect <= 4 ? rawCorrect - 1 : 0;
+
+                            updatePayload.options = [opt1, opt2, opt3, opt4];
+                            updatePayload.correctOption = correctOption;
+                        }
+
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', idStr), updatePayload, { merge: true });
+                        updatedCount++;
+                    }
+
+                    showToast(`🎉 成功一鍵匯入 / 更新了 ${updatedCount} 個點位題庫！`, "success");
+                    e.target.value = '';
+                } catch (err) {
+                    console.error("Batch Excel Upload Error:", err);
+                    showToast("解析 Excel 檔案失敗，請檢查檔案格式！", "error");
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.openModal = function(modalId) {
+            document.getElementById(modalId)?.classList.remove('hidden');
+        };
+
+        window.closeModal = function(modalId) {
+            document.getElementById(modalId)?.classList.add('hidden');
+        };
+
+        window.showConfirmModal = function({ title, message, onConfirm }) {
+            document.getElementById('confirm-title').innerText = title || '確認執行？';
+            document.getElementById('confirm-message').innerText = message || '';
+            pendingConfirmCallback = onConfirm;
+
+            document.getElementById('btn-confirm-cancel').onclick = () => {
+                closeModal('modal-confirm');
+                pendingConfirmCallback = null;
+            };
+
+            document.getElementById('btn-confirm-ok').onclick = async () => {
+                closeModal('modal-confirm');
+                if (pendingConfirmCallback) {
+                    await pendingConfirmCallback();
+                    pendingConfirmCallback = null;
+                }
+            };
+
+            openModal('modal-confirm');
+        };
+
+        window.openLightbox = function(imgSrc, caption) {
+            document.getElementById('lightbox-img').src = imgSrc;
+            document.getElementById('lightbox-caption').innerText = caption || '';
+            openModal('modal-image-view');
+        };
+
+        window.showToast = function(msg, type = "success") {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const text = document.getElementById('toast-msg');
+
+            text.innerText = msg;
+            if (type === "error") {
+                icon.className = "fa-solid fa-circle-xmark text-rose-400 text-lg";
+            } else if (type === "info") {
+                icon.className = "fa-solid fa-circle-info text-amber-400 text-lg";
+            } else {
+                icon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        };
+
+        // Initialize App on window load
+        window.onload = function() {
+            initAuthAndData();
+            updateTeamHeaderUI();
+
+            if (!currentEditingUser) {
+                setTimeout(() => {
+                    openTeamSetupModal();
+                }, 500);
+            }
+        };
+    </script>
+</body>
+</html>
